@@ -642,44 +642,161 @@ function renderCalendarToggles() {
 
 /* ── Color Pickers ─────────────────────────────────── */
 
+// This key must always exist — it's the fallback color used by
+// getColorForEvent() in utils.js when nothing else matches, and
+// settings.js's migration logic depends on it being present.
+const PROTECTED_COLOR_KEY = 'default';
+
 function renderColorPickers() {
   const container = document.getElementById('color-pickers');
   const colors = currentSettings.calendars.colors;
   const fragment = document.createDocumentFragment();
 
   for (const [key, value] of Object.entries(colors)) {
-    const row = document.createElement('div');
-    row.className = 'color-row';
-
-    const inputId = 'color-picker-' + key.replace(/[^a-zA-Z0-9_-]/g, '-');
-
-    const label = document.createElement('label');
-    label.textContent = key;
-    label.htmlFor = inputId;
-
-    const input = document.createElement('input');
-    input.type = 'color';
-    input.id = inputId;
-    input.value = value;
-    input.dataset.key = key;
-    input.addEventListener('input', (e) => {
-      currentSettings.calendars.colors[e.target.dataset.key] = e.target.value;
-      e.target.nextElementSibling.textContent = e.target.value;
-      markDirty();
-    });
-
-    const hex = document.createElement('span');
-    hex.className = 'color-hex';
-    hex.textContent = value;
-
-    row.appendChild(label);
-    row.appendChild(input);
-    row.appendChild(hex);
-    fragment.appendChild(row);
+    fragment.appendChild(buildColorRow(key, value));
   }
 
   container.textContent = '';
   container.appendChild(fragment);
+
+  const addBtn = document.getElementById('btn-add-color');
+  if (addBtn && !addBtn.dataset.bound) {
+    addBtn.dataset.bound = 'true';
+    addBtn.addEventListener('click', addColorRow);
+  }
+}
+
+/** Build one editable key/color/delete row. */
+function buildColorRow(key, value) {
+  const row = document.createElement('div');
+  row.className = 'color-row';
+  row.dataset.key = key;
+
+  const isProtected = key === PROTECTED_COLOR_KEY;
+
+  const keyInput = document.createElement('input');
+  keyInput.type = 'text';
+  keyInput.className = 'color-key-input';
+  keyInput.value = key;
+  keyInput.placeholder = 'keyword';
+  keyInput.spellcheck = false;
+  keyInput.autocomplete = 'off';
+  if (isProtected) {
+    keyInput.disabled = true;
+    keyInput.title = 'The "default" color is the fallback for unmatched events and can\'t be renamed.';
+  } else {
+    keyInput.addEventListener('blur', (e) => commitColorKeyRename(row, e.target));
+    keyInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') e.target.blur();
+    });
+  }
+
+  const colorInput = document.createElement('input');
+  colorInput.type = 'color';
+  colorInput.value = value;
+  colorInput.addEventListener('input', (e) => {
+    currentSettings.calendars.colors[row.dataset.key] = e.target.value;
+    hex.textContent = e.target.value;
+    markDirty();
+  });
+
+  const hex = document.createElement('span');
+  hex.className = 'color-hex';
+  hex.textContent = value;
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'icon-btn icon-btn-danger';
+  deleteBtn.setAttribute('aria-label', 'Remove ' + key + ' color');
+  if (isProtected) {
+    deleteBtn.disabled = true;
+    deleteBtn.title = 'The "default" color can\'t be removed.';
+  } else {
+    deleteBtn.title = 'Remove';
+    deleteBtn.addEventListener('click', () => {
+      delete currentSettings.calendars.colors[row.dataset.key];
+      row.remove();
+      markDirty();
+    });
+  }
+  deleteBtn.appendChild(createTrashIcon());
+
+  row.appendChild(keyInput);
+  row.appendChild(colorInput);
+  row.appendChild(hex);
+  row.appendChild(deleteBtn);
+  return row;
+}
+
+/** Rename a color key in place, validating against blanks/duplicates. */
+function commitColorKeyRename(row, input) {
+  const oldKey = row.dataset.key;
+  const newKey = input.value.trim().toLowerCase();
+  const colors = currentSettings.calendars.colors;
+
+  if (!newKey || newKey === oldKey) {
+    input.value = oldKey;
+    return;
+  }
+
+  if (newKey in colors) {
+    alert('A color for "' + newKey + '" already exists.');
+    input.value = oldKey;
+    return;
+  }
+
+  const value = colors[oldKey];
+  delete colors[oldKey];
+  colors[newKey] = value;
+  row.dataset.key = newKey;
+  input.value = newKey;
+  markDirty();
+}
+
+/** Add a new, immediately-editable color row. */
+function addColorRow() {
+  const colors = currentSettings.calendars.colors;
+  let key = 'new-color';
+  let i = 2;
+  while (key in colors) {
+    key = 'new-color-' + i;
+    i++;
+  }
+  colors[key] = '#888888';
+  markDirty();
+
+  const container = document.getElementById('color-pickers');
+  const row = buildColorRow(key, colors[key]);
+  container.appendChild(row);
+
+  const keyInput = row.querySelector('.color-key-input');
+  keyInput.focus();
+  keyInput.select();
+}
+
+/** Small trash-can icon for the delete button (built as DOM, not innerHTML). */
+function createTrashIcon() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+
+  const paths = [
+    'M3 6h18',
+    'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2',
+    'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6',
+  ];
+  for (const d of paths) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    svg.appendChild(path);
+  }
+  return svg;
 }
 
 /* ── Weather Location ─────────────────────────────── */

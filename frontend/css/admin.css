@@ -667,10 +667,27 @@ body {
   gap: 12px;
 }
 
-.color-row label {
+.color-key-input {
   font-size: 14px;
-  min-width: 80px;
-  text-transform: capitalize;
+  min-width: 0;
+  width: 120px;
+  padding: 6px 8px;
+  background: var(--admin-card);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  color: var(--admin-text);
+}
+
+.color-key-input:focus {
+  outline: none;
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-accent) 35%, transparent);
+}
+
+.color-key-input:disabled {
+  color: var(--admin-text-muted);
+  cursor: not-allowed;
+  background: var(--admin-bg);
 }
 
 .color-row input[type="color"] {
@@ -697,6 +714,37 @@ body {
   font-family: monospace;
   color: var(--admin-text-muted);
   min-width: 64px;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: var(--admin-danger);
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#btn-add-color {
+  margin-top: 12px;
 }
 
 /* ── Theme / Form Fields ──────────────────────────── */
