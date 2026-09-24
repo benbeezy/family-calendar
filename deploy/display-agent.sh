@@ -56,6 +56,10 @@ while true; do
   if [ "$SCREEN_ON" = "true" ] && [ "$LAST_STATE" != "on" ]; then
     echo "[display-agent] Screen ON"
     DISPLAY=$DISPLAY_ENV xset dpms force on 2>/dev/null
+    # `force on` re-enables DPMS with the default 10-minute idle timeouts,
+    # which would blank the screen even during scheduled-on hours. Zero the
+    # timeouts so only this agent ever powers the display off.
+    DISPLAY=$DISPLAY_ENV xset dpms 0 0 0 2>/dev/null
     send_cec wake
     LAST_STATE="on"
   elif [ "$SCREEN_ON" = "false" ] && [ "$LAST_STATE" != "off" ]; then

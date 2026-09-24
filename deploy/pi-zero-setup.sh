@@ -151,6 +151,20 @@ cp "$REPO_DIR/deploy/openbox-autostart.sh" "$AUTOSTART_DIR/autostart"
 chmod +x "$AUTOSTART_DIR/autostart"
 chown -R "$PI_USER:$PI_USER" "$AUTOSTART_DIR"
 
+# ── 9a. Disable X idle blanking ───────────────────────
+# Zero DPMS/screensaver timeouts at the server level so the display never
+# powers off on idle, regardless of whether the Openbox session's xset calls
+# take effect. Scheduled off/on is handled separately by display-agent.
+mkdir -p /etc/X11/xorg.conf.d
+cat > /etc/X11/xorg.conf.d/10-no-blanking.conf << 'XORGCONF'
+Section "ServerFlags"
+    Option "BlankTime"   "0"
+    Option "StandbyTime" "0"
+    Option "SuspendTime" "0"
+    Option "OffTime"     "0"
+EndSection
+XORGCONF
+
 # ── 10. systemd services ──────────────────────────────
 echo "→ Installing systemd services..."
 
