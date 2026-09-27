@@ -309,6 +309,9 @@ body {
 
 .day-cell.is-today {
   background: color-mix(in srgb, var(--color-primary) 6%, var(--bg-body));
+  border: solid;
+  border-width: thin;
+  border-color: green;
 }
 
 .day-cell.is-past {
